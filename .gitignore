@@ -1,0 +1,12 @@
+#proj
+*.njsproj
+*.user
+
+.vs/
+
+*.sln
+bin/
+obj/
+
+*.json
+server.js

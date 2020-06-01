@@ -1,0 +1,33 @@
+﻿<!--raw code @ github-->
+<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <!script type="text/javascript" src="ReadTest.js">
+    <script>
+    var a=new Array();
+
+    function handleFileSelect(evt) {
+        var files = evt.target.files; // FileList object
+        if(files[0])
+        {
+            var reader = new FileReader();
+            reader.readAsText(files[0]);
+            reader.onload = loaded;
+        }
+    }
+
+    function loaded(evt) {
+        var fileString = evt.target.result;
+        alert(fileString);
+    }
+    </script>
+</head>
+<body>
+    <input type="file" id="file" name="files[]" multiple />
+    <script type="text/javascript">
+        var btn=document.getElementById('file');
+        btn.addEventListener('change', handleFileSelect, false);
+    </script>
+</body>
+</html>

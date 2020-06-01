@@ -1,0 +1,188 @@
+﻿<!DOCTYPE html>
+<!--myerasure_version2,
+    here we change the loading function
+    from readAsText to readAsArrayBuffer,
+    thereby we can onload many types of files,
+    including exe JPG txt .etc-->
+<!--myerasure_version3,
+    add filename&type
+    mend innerhtml to show content-->
+<!--TODO:0527
+    a.和loli对接，大概问题有
+    格式：编解码都要uint8，这个比较简单。
+    附加的信息：
+        错误校验：需要哈希，可以放后面
+        文件名/大小/块长 等等
+
+    b.本周工作
+    优先级
+    ! 寻找外包
+    1 写个效果测评
+    1 擦除数据（模拟传输时的丢失/出错）改成随机的
+    2 把当前html里的函数放进scripts文件夹中
+    2 分块大小控制：xk老师建议控制在512KB几百块左右（其实忘了），回头看看会议记录他说了啥，然后试试
+    3 试用wasm，毕竟目前这个太慢。（稍微搞懂了一点js，可能会方便一些。
+    -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+    <script>
+        var a = new Array();
+        var filetype = new Array();
+        var filename = new Array();
+        var filesize;
+
+        /* After file selected, list info(name, type)
+         * and read filestream As ArrayBuffer
+         * use FileReader, seemingly usable for Chrome & Firefox
+         */
+        function handleFileSelect(evt) {
+            var files = evt.target.files; // FileList object
+            //filename = evt.target.name;
+            //alert(filename);
+            //alert(files[0].type);
+            filename = files[0].name;
+            //alert(filename);
+            filetype = files[0].type;
+            //alert(filetype);
+            filesize = files[0].size;
+
+            if (document.getElementById("info") != null)
+                document.getElementById("info").innerHTML =
+                    "<h3>file name</h3> " + filename
+                    + "</br><h3>file type</h3> " + filetype
+                    + "</br><h3>file size</h3> " + filesize / 1000 + " Byte"
+                    + "</br></br>";
+
+            if (files[0]) {
+                var reader = new FileReader();
+                reader.readAsArrayBuffer(files[0]);
+                reader.onload = loaded;
+            }
+        }
+
+        /* Download file, using A Tag
+         * fileName: Array
+         * content: Uint8Array
+         *
+         */
+        function createAndDownloadFile(fileName, content) {
+            var aTag = document.createElement('a');
+            //0525 add type:
+            var blob = new Blob([content], { type: filetype, name: filename });
+            aTag.download = fileName;
+            aTag.href = URL.createObjectURL(blob);
+            aTag.click();
+            URL.revokeObjectURL(blob);
+        }
+
+        function arraysEqual(a, b) {
+            if (a.length != b.length)
+                return false;
+
+            for (var i = 0; i < a.length; i++)
+                if (a[i] != b[i])
+                    return false;
+            return true;
+        }
+
+        testErasure = function (original, errors) {
+            const t1 = Date.now();
+            var bfrags = erasure.split(original, 40, 10);
+
+            /*
+            if (document.getElementById("decode") != null)
+                document.getElementById("decode").innerHTML += bfrags;
+            */
+
+            //createAndDownloadFile("bfrags", bfrags);
+
+            const t2 = Date.now();//TIMING START
+
+            console.log("Erasure encode took " + (t2 - t1) + " mS");
+            //TODO
+            if (document.getElementById("encode") != null)
+                document.getElementById("encode").innerHTML = "Encode took " + (t2 - t1) + "mS to generate " + bfrags.length + " fragments</br>";
+            //clean some parts to simulate error
+            for (var i = 0; i < errors; i++)
+                bfrags[i] = new Uint8Array(bfrags[i].length);
+
+            var decoded = erasure.recombine(bfrags, original.length, 40, 10);
+            if (decoded.length > original.length)
+                decoded = decoded.subarray(0, original.length);
+
+            const t3 = Date.now();//TIMING END
+
+            //alert("decoded");
+            if (errors == 0 | errors == 9) {
+                alert("errors=" + errors+", decoded");
+                createAndDownloadFile(filename, decoded);
+            }
+            
+            //an easy way to detect contents change
+            if (!arraysEqual(original, decoded))
+                throw "Decoded contents different from original!";
+            if (document.getElementById("decode") != null)
+                document.getElementById("decode").innerHTML += "Decode with " + errors + " errors suceeded in " + (t3 - t2) + "mS</br>";
+            console.log("Erasure decode took " + (t3 - t2) + " mS");
+            return Promise.resolve(true);
+        }
+
+        /*
+        //字符串转化成ArrayBuffer
+        function str2ab(str) {
+            var buf = new ArrayBuffer(str.length); // 每个字符占用1个字节
+            var bufView = new Uint8Array(buf);
+            for (var i = 0, strLen = str.length; i < strLen; i++) {
+                bufView[i] = str.charCodeAt(i);
+            }
+            return buf;
+        }
+        */
+
+        function loaded(evt) {
+            var fileString = evt.target.result;
+            raw = new Uint8Array(fileString);
+            //createAndDownloadFile("raw",raw);
+            if (document.getElementById("info") != null)
+                document.getElementById("info").innerHTML += "loaded as Uint8Array...</br></br>";
+
+            // create a worker to do the erasure coding
+            var blob = new Blob(["onmessage = function(e) { postMessage(e.data); }"]);
+            // Obtain a blob URL reference to our worker 'file'.
+            var blobURL = window.URL.createObjectURL(blob);
+            //alert(blobURL);
+            var worker = new Worker(blobURL);
+            worker.onmessage = function (e) {
+                console.log(e.data);
+                //alert(e.data);
+                testErasure(e.data.input, e.data.errors);
+                var nerrors = e.data.errors + 1;
+                if (nerrors < 12)
+                    this.postMessage({ errors: nerrors, input: e.data.input });
+            };
+            worker.postMessage({ errors: 0, input: raw });
+        }
+
+    </script>
+
+</head>
+<body>
+
+    <input type="file" id="file" name="files[]" multiple />
+
+    <h1>Please wait during erasure code profiling...</h1>
+    <div id="info"></div>
+    <div id="encode"></div>
+    <div id="decode"></div>
+    <div id="error"></div>
+    <script type="text/javascript">
+        var btn = document.getElementById('file');
+        btn.addEventListener('change', handleFileSelect, false);
+    </script>
+    <script src="scripts/erasure.js"></script>
+    <!--<!script src="scripts/mytest.js"><!/script>-->
+
+</body>
+</html>
