@@ -11,14 +11,19 @@ function arraysEqual(a, b) {
     return true;
 }
 
-/*字符串转化成ArrayBuffer
+/*ArrayBuffer
  * maybe useful when providing API to server
  */
 function str2ab(str) {
-    var buf = new ArrayBuffer(str.length); // 每个字符占用1个字节
+    var buf = new ArrayBuffer(str.length); // 
     var bufView = new Uint8Array(buf);
     for (var i = 0, strLen = str.length; i < strLen; i++) {
         bufView[i] = str.charCodeAt(i);
     }
     return buf;
+}
+
+function c() {
+    var t = document.getElementById("txt");
+    t.value = "我很好！";
 }

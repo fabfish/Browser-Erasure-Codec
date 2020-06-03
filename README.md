@@ -28,6 +28,14 @@
 
 写点啥
 
+本次的工作是写好了收文件、计算 hash 然后传给后端这一部分。还没有做从后端接收。
+
+loli 给的接口：
+object encodeFile();
+void decodeFile((str)fileName,(str)fileType,(int)numOfDivision,(int)numOfAppend,(byte[][])content,(string[])digest);
+
+目前做的接口则是
+
 ## TODO 日志
 
 TODO: 05 / 27
@@ -68,3 +76,6 @@ TODO
 sendFragments((str)fileName,(str)fileType,(int)numOfDivision,(int)numOfAppend,(byte[][])content,(string[])digest);
 recvFragments((str)fileName,(str)fileType,(int)numOfDivision,(int)numOfAppend,(byte[][])content,(string[])digest);
 
+0603
+TODO
+想到一个问题：js 脚本里是如何自动忽略结尾的 0 的？
