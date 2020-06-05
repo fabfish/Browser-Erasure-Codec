@@ -382,7 +382,7 @@ GaloisPolynomial.create = function(coeffs, f) {
     // (Uint8Array, int, int)-> Uint8Array
     exports.split = function(ints, originalBlobs, allowedFailures)
     {
-        var n = originalBlobs + allowedFailures*2;
+        var n = originalBlobs + allowedFailures;
         var bouts = [];
         for (var i=0; i < n; i++)
             bouts.push(new ByteArrayOutputStream((symbolSize*ints.length/inputSize)|0));
@@ -412,7 +412,7 @@ GaloisPolynomial.create = function(coeffs, f) {
     // (Uint8Array[], int, int, int) -> Uint8Array
     exports.recombine = function(encoded, truncateTo, originalBlobs, allowedFailures)
     {
-        const n = originalBlobs + allowedFailures*2;
+        const n = originalBlobs + allowedFailures;
         const encodeSize = ((f.size/n)|0)*n;
         const inputSize = encodeSize*originalBlobs/n;
         const nec = encodeSize-inputSize;

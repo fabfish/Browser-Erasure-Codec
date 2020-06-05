@@ -27,3 +27,20 @@ function c() {
     var t = document.getElementById("txt");
     t.value = "Œ“∫‹∫√£°";
 }
+
+//0530 add random
+function randomize(n) {
+    for (var j = 0; j < n; j++) {
+        randomArray[j] = j;
+    }
+    randomArray.sort(function () {
+        return 0.5 - Math.random();
+    });
+    //0530show random
+    if (document.getElementById("random") != null) {
+        for (var j = 0; j < n; j++) {
+            document.getElementById("random").innerHTML += (randomArray[j] + " , ");
+        }
+        document.getElementById("random").innerHTML += "</br>";
+    }
+}
