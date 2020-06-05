@@ -1,14 +1,29 @@
-/* Simplified way to detect file change,
- * a better way is to use Hash key
- */
-function arraysEqual(a, b) {
-    if (a.length != b.length)
-        return false;
 
-    for (var i = 0; i < a.length; i++)
-        if (a[i] != b[i])
-            return false;
-    return true;
+
+/* handleNumberSet: from the text blocks, 
+ * get the number of Division / Append.
+ * <input type="text" id="Division" value=40>
+ * TODO: I want the text blocks to get the number automatically without click "change" button
+ * it is optional
+ * */
+function handleNumberSet() {
+    numOfDivision = Number(document.getElementById("Division").value);
+    numOfAppend = Number(document.getElementById("Append").value);
+}
+
+/* createAndDownloadFile(fileName, fileType, content)
+ * Download file, using aTag
+ * fileName: Array
+ * content: Uint8Array? NOT SURE (but it works)
+ * important
+ * */
+function createAndDownloadFile(fileName, fileType, content) {
+    var aTag = document.createElement('a');
+    var blob = new Blob([content], { type: fileType, name: fileName });
+    aTag.download = fileName;
+    aTag.href = URL.createObjectURL(blob);
+    aTag.click();
+    URL.revokeObjectURL(blob);
 }
 
 /*ArrayBuffer
@@ -29,6 +44,9 @@ function c() {
 }
 
 //0530 add random
+/* to gen random n array
+ * 
+ * */
 function randomize(n) {
     for (var j = 0; j < n; j++) {
         randomArray[j] = j;
@@ -43,4 +61,17 @@ function randomize(n) {
         }
         document.getElementById("random").innerHTML += "</br>";
     }
+}
+
+/* Simplified way to detect file change,
+ * a better way is to use Hash key
+ */
+function arraysEqual(a, b) {
+    if (a.length != b.length)
+        return false;
+
+    for (var i = 0; i < a.length; i++)
+        if (a[i] != b[i])
+            return false;
+    return true;
 }

@@ -36,6 +36,19 @@ void decodeFile((str)fileName,(str)fileType,(int)numOfDivision,(int)numOfAppend,
 
 目前做的接口则是
 
+##### 6.6
+
+做完了 lab4，熬个夜
+
+目前写完了 loli 要求的接口，但还有很多可以优化：
+
+1. 输入数字的方式有点傻，需要按按钮
+2. 把东西放进 *.js 里面应该会好看一点，等会儿试试
+3. 还是 xk 老师说的，要注意分块大小。
+4. Hash 的方式可以再探索一下。
+
+然后应该就是开始做 wasm 了，明天可以试试。
+
 ## TODO 日志
 
 TODO: 05 / 27
@@ -79,3 +92,8 @@ recvFragments((str)fileName,(str)fileType,(int)numOfDivision,(int)numOfAppend,(b
 0603
 TODO
 想到一个问题：js 脚本里是如何自动忽略结尾的 0 的？
+（补充）观察过了，是用原文件的 fileSize 和 decode 生成的数组元素个数比较，用 .subarray 方法消去末尾的 0.
+
+0606
+TODO
+见日记。
