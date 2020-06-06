@@ -22,9 +22,13 @@
              * turn to upLoader()
              * handleFileSelect(this) -> upLoader 
              * */
+            // sendFragments((str)fileName,(str)fileType,(int)numOfDivision,(int)numOfAppend,(byte[][])content(content),(string[])digest,(int)fileSize);
             var fileType = new Array();
             var fileName = new Array();
             var fileSize;
+            // TODO temp fix
+            var content = new Array();
+            var digest = new Array();
             function handleFileSelect(evt) {
                 var files = evt.target.files; // FileList object
                 if (files[0]) {
@@ -79,12 +83,14 @@
                     console.log(e.data);
                     /*fileEncoder*/
                     const t1 = Date.now();//Encode timing start
-                    var content = erasure.split(e.data.input, numOfDivision, numOfAppend);
+                    //TODO
+                    content = erasure.split(e.data.input, numOfDivision, numOfAppend);
                     const t2 = Date.now();//Encode timing end
                     console.log("Erasure encode took " + (t2 - t1) + " mS");
                     if (document.getElementById("encode") != null)
                         document.getElementById("encode").innerHTML += "Encode took " + (t2 - t1) + "mS to generate " + content.length + " fragments</br>";
-                    var digest = new Array();
+                    //TODO
+                    //var digest = new Array();
                     const t3 = Date.now();//Hash timing start
                     for (var i = 0; i < content.length; i++) {
                         digest[i] = objectHash.MD5(content[i]);
@@ -102,6 +108,15 @@
                 worker.postMessage({ input: raw });
             }
             handleFileSelect(evt);
+            return {
+                fileName: fileName,
+                fileType: fileType,
+                numOfDivision: numOfDivision,
+                numOfAppend: numOfAppend,
+                content: content,
+                digest: digest,
+                fileSize: fileSize
+            }
         }
 
         /* void decodeFile((str)fileName,(str)fileType,
@@ -154,6 +169,9 @@
     <script type="text/javascript">
         var btn = document.getElementById('file');
         btn.addEventListener('change', encodeFile, false);
+    </script>
+    <script type="text/javascript">
+
     </script>
     <script src="scripts/object_hash.js" type="text/javascript"></script>
     <script src="scripts/erasure.js"></script>
