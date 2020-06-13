@@ -1,0 +1,188 @@
+﻿<!DOCTYPE html>
+<!--myerasure_version 8
+    pack functions to provide standard ports-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+    <script>
+        var numOfDivision = 40;
+        var numOfAppend = 20;
+        //var randomArray = new Array;
+
+        /* encodeFile(click): packed functions
+         * including:
+         *  handleFileSelect()
+         *  upLoader()
+         * */
+        function encodeFile(evt) {
+            /* After file selected, get info(name, type, size) as global,
+             * and read filestream As ArrayBuffer
+             * use FileReader, seemingly usable for Chrome & Firefox
+             * turn to upLoader()
+             * handleFileSelect(this) -> upLoader 
+             * */
+            // sendFragments((str)fileName,(str)fileType,(int)numOfDivision,(int)numOfAppend,(byte[][])content(content),(string[])digest,(int)fileSize);
+            var fileType = new Array();
+            var fileName = new Array();
+            var fileSize;
+            // TODO temp fix
+            var content = new Array();
+            var digest = new Array();
+            function handleFileSelect(evt) {
+                var files = evt.target.files; // FileList object
+                if (files[0]) {
+                    fileType = files[0].type;
+                    fileName = files[0].name;
+                    fileSize = files[0].size;
+                    var reader = new FileReader();
+                    //reader.readAsBinaryString(files[0]);
+                    reader.readAsArrayBuffer(files[0]);
+                    reader.onload = upLoader;
+                }
+            }
+            /* 
+             * user choose a file, and trigger handleFileSelect -> upLoader(this)
+             * upLoader get the file in *.result as raw, then create a worker to do encoding
+             * evt : from                  ↙ not this evt
+             *  function handleFileSelect(evt) {
+                    ...
+                    var reader = new FileReader();
+                    ...                 ↙ Maybe this evt(I'm not sure)
+                    reader.onload = upLoader;
+                }
+             * */
+            function upLoader(evt) {
+                if (document.getElementById("tips") != null)
+                    document.getElementById("tips").innerHTML = "<h3>Please wait during erasure code profiling...</h3></br>";
+                /*receive file*/
+                var fileString = evt.target.result;
+                if (document.getElementById("info") != null)
+                    document.getElementById("info").innerHTML = "loaded as Uint8Array...</br>";
+                if (document.getElementById("encode") != null)
+                    document.getElementById("encode").innerHTML = "";
+                if (document.getElementById("decode") != null)
+                    document.getElementById("decode").innerHTML = ""; 
+                raw = new Uint8Array(fileString);
+
+                if (document.getElementById("info") != null)
+                    document.getElementById("info").innerHTML +=
+                        "<h3>file name</h3> " + fileName
+                        + "</br><h3>file type</h3> " + fileType
+                        + "</br><h3>file size</h3> " + fileSize / 1024 + " KB"
+                        + "</br>Division " + numOfDivision
+                        + " Append " + numOfAppend
+                        + "</br></br>";
+
+                // create a worker to do the erasure coding
+                var blob = new Blob(["onmessage = function(e) { postMessage(e.data); }"]);
+                // Obtain a blob URL reference to our worker 'file'.
+                var blobURL = window.URL.createObjectURL(blob);
+                var worker = new Worker(blobURL);
+                worker.onmessage = function (e) {
+                    console.log(e.data);
+                    /*fileEncoder*/
+                    const t1 = Date.now();//Encode timing start
+                    //TODO
+                    content = erasure.split(e.data.input, numOfDivision, numOfAppend);
+                    var testit = myencoder(e.data.input,numOfDivision,numOfAppend);
+                    alert(testit);
+                    const t2 = Date.now();//Encode timing end
+                    console.log("Erasure encode took " + (t2 - t1) + " mS");
+                    if (document.getElementById("encode") != null)
+                        document.getElementById("encode").innerHTML += "Encode took " + (t2 - t1) + "mS to generate " + content.length + " fragments</br>";
+                    //TODO
+                    //var digest = new Array();
+                    const t3 = Date.now();//Hash timing start
+                    for (var i = 0; i < content.length; i++) {
+                        digest[i] = objectHash.MD5(content[i]);
+                    }
+                    const t4 = Date.now();//Hash timing end
+                    if (document.getElementById("encode") != null)
+                        document.getElementById("encode").innerHTML += "Hash took " + (t4 - t3) + "mS to generate " + content.length + " digests</br>";
+                    /* Next we can use sendFragments() to send the results to the backend,
+                     * hopefully content[][] remain as 2d array
+                     * */
+                    // sendFragments((str)fileName,(str)fileType,(int)numOfDivision,(int)numOfAppend,(byte[][])content(content),(string[])digest,(int)fileSize);
+                    // Here we use decodeFile to test if encode and decode both work properlly.
+                    decodeFile(fileName, fileType, numOfDivision, numOfAppend, content, digest, fileSize);
+                };
+                worker.postMessage({ input: raw });
+            }
+            handleFileSelect(evt);
+            return {
+                fileName: fileName,
+                fileType: fileType,
+                numOfDivision: numOfDivision,
+                numOfAppend: numOfAppend,
+                content: content,
+                digest: digest,
+                fileSize: fileSize
+            }
+        }
+
+        /* void decodeFile((str)fileName,(str)fileType,
+         *                  (int)numOfDivision,(int)numOfAppend,
+         *                  (byte[][])content,(string[])digest,
+         *                  (int)fileSize);
+         * decode the content[][] and recover the original file
+         * */
+        function decodeFile(fileName, fileType, numOfDivision, numOfAppend, content, digest, fileSize) {
+            //clean wrong parts
+            var errors = 0;
+            for (var i = 0; i < content.length; i++) {
+                if (digest[i] != objectHash.MD5(content[i])) {
+                    errors += 1;
+                    content[i] = new Uint8Array(content[i].length);
+                }
+            }
+
+            const t5 = Date.now();//Decode timing start
+            var decoded = erasure.recombine(content, fileSize, numOfDivision, numOfAppend);
+            if (decoded.length > fileSize)
+                decoded = decoded.subarray(0, original.length);
+            const t6 = Date.now();//Decode timing end
+
+            // after decoded, download the file and show info(time, errors)
+            createAndDownloadFile(fileName, fileType, decoded);
+
+            if (document.getElementById("decode") != null)
+                document.getElementById("decode").innerHTML += "Decode with " + errors + " errors suceeded in " + (t6 - t5) + "mS</br>";
+            console.log("Erasure decode took " + (t6 - t5) + " mS");
+            return Promise.resolve(true);
+        }
+
+
+    </script>
+
+</head>
+<body>
+
+    <input type="file" id="file" name="files[]" multiple />
+    <input type="text" id="Division" value=40>
+    <input type="text" id="Append" value=20>
+    <input type="button" value="修改" onclick="handleNumberSet()" />
+    <div id="tips"></div>
+    <div id="info"></div>
+    <div id="encode"></div>
+    <div id="random"></div>
+    <div id="decode"></div>
+    <div id="error"></div>
+    <script type="text/javascript">
+        var btn = document.getElementById('file');
+        btn.addEventListener('change', encodeFile, false);
+    </script>
+    <script type="text/javascript">
+
+    </script>
+    <script src="scripts/object_hash.js" type="text/javascript"></script>
+    <script src="scripts/erasure.js"></script>
+    <script src="scripts/funcs.js"></script>
+    <script src="examples/wasm_exec.js"></script>
+    <script>
+        const go = new Go();
+        WebAssembly.instantiateStreaming(fetch("examples/myencoder.wasm"), go.importObject)
+            .then((result) => go.run(result.instance));
+    </script>
+</body>
+</html>
