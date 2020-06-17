@@ -61,26 +61,54 @@ func init() {
 
 //sendFragments((str)fileName,(str)fileType,(int)numOfDivision,(int)numOfAppend,(byte[][])content(content),(string[])digest,(int)fileSize);
 func goEncoder(raw []byte, numOfDivision int, numOfAppend int)(content [][]byte){
+//func goEncoder(rawJS js.Value, numOfDivisionJS js.Value, numOfAppendJS js.Value)(content [][]byte){
+	/*
+	var raw = new([]byte)
+	var numOfDivision = new(int)
+	var numOfAppend = new(int)
+	raw = rawJS.Int()
+	numOfDivision = numOfDivisionJS.Int()
+	numOfAppend = numOfAppendJS.Int()
+	*/
+	//fmt.Println(raw)
 	enc, err := reedsolomon.New(numOfDivision, numOfAppend)
 	checkErr(err)
 	content, err = enc.Split(raw)
 	checkErr(err)
 	err = enc.Encode(content)
 	checkErr(err)
-	//fmt.Println("hi");
+	//fmt.Println(content)
+	//fmt.Println("hi")
 	return content
 }
 
-func callEncoder(this js.Value, i []js.Value) interface{}{
-	return js.ValueOf(i[0])
+func callEncoder(this js.Value, args []js.Value) interface{}{
+	buffer := make([]byte, args[0].Length())
+	//fmt.Println(args[0].Length)
+	//fmt.Println(args[0])
+	js.CopyBytesToGo(buffer, args[0])
+	content := goEncoder(buffer, args[1].Int(), args[2].Int())
+	fmt.Println("content len = ",len(content)," content[0] len =", len(content[0]))
+	//fmt.Println("content = ",content)
+
+	jsBuffer := make([]js.Value, len(content))
+	jsInterface := make([]interface{},len(content))
+	for  i:=0; i<len(content); i++{
+		jsBuffer[i] =  js.Global().Get("Uint8Array").New(len(content[0]))
+		js.CopyBytesToJS(jsBuffer[i], content[i])
+		jsInterface[i] = js.ValueOf(jsBuffer[i])
+	}
+	//fmt.Println(jsBuffer)
+	return js.ValueOf(jsInterface)
+
 } 
 
 //func mydecoder(content [][]byte)()
 
 func main() {
-	//c:= make{chan []struct, 0}
+	c := make(chan struct{}, 0)
 	js.Global().Set("callEncoder",js.FuncOf(callEncoder))
-	select{}
+	<-c
 }
 
 func checkErr(err error) {

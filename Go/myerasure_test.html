@@ -85,8 +85,14 @@
                     const t1 = Date.now();//Encode timing start
                     //TODO
                     content = erasure.split(e.data.input, numOfDivision, numOfAppend);
-                    var testit = myencoder(e.data.input,numOfDivision,numOfAppend);
-                    alert(testit);
+                    var testit = callEncoder(e.data.input,numOfDivision,numOfAppend);
+                    //createAndDownloadFile(fileName,fileType,testit);
+                    
+                        alert(testit);
+                        alert("?");
+                        alert(content);
+                        
+                    /**/
                     const t2 = Date.now();//Encode timing end
                     console.log("Erasure encode took " + (t2 - t1) + " mS");
                     if (document.getElementById("encode") != null)
