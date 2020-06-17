@@ -85,18 +85,17 @@
                     const t1 = Date.now();//Encode timing start
                     //TODO
                     content = erasure.split(e.data.input, numOfDivision, numOfAppend);
-                    var testit = callEncoder(e.data.input,numOfDivision,numOfAppend);
+                    const t2JS = Date.now();
+                    var content = callEncoder(e.data.input,numOfDivision,numOfAppend);
+                    const t2Go = Date.now();
                     //createAndDownloadFile(fileName,fileType,testit);
-                    
-                        alert(testit);
-                        alert("?");
-                        alert(content);
-                        
-                    /**/
-                    const t2 = Date.now();//Encode timing end
-                    console.log("Erasure encode took " + (t2 - t1) + " mS");
-                    if (document.getElementById("encode") != null)
-                        document.getElementById("encode").innerHTML += "Encode took " + (t2 - t1) + "mS to generate " + content.length + " fragments</br>";
+                    //const t2 = Date.now();//Encode timing end
+                    console.log("Javascript Erasure encode took " + (t2JS - t1) + " mS");
+                    console.log("Go Erasure encode took " + (t2Go - t2JS) + " mS");
+                    if (document.getElementById("encode") != null){
+                        document.getElementById("encode").innerHTML += "Javascript encode took " + (t2JS - t1) + "mS to generate " + content.length + " fragments</br>";
+                        document.getElementById("encode").innerHTML += "Go encode took " + (t2Go- - t1) + "mS to generate " + content.length + " fragments</br>";
+                    } 
                     //TODO
                     //var digest = new Array();
                     const t3 = Date.now();//Hash timing start

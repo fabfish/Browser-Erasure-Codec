@@ -1,4 +1,4 @@
-//+build ignore
+//+build ignore0689bgh897j6uy
 
 // Copyright 2015, Klaus Post, see LICENSE for details.
 //
