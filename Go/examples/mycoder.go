@@ -36,69 +36,34 @@
 package main
 
 import (
-	"flag"
+	//"flag"
 	"fmt"
 	//"io/ioutil"
 	"os"
 	//"path/filepath"
 	"bytes"
+	"reflect"
 
 	"syscall/js"
 	"github.com/klauspost/reedsolomon"
 )
 
-var dataShards = flag.Int("data", 4, "Number of shards to split the data into, must be below 257.")
-var parShards = flag.Int("par", 2, "Number of parity shards")
-var outDir = flag.String("out", "", "Alternative output directory")
-
-func init() {
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
-		fmt.Fprintf(os.Stderr, "  simple-encoder [-flags] filename.ext\n\n")
-		fmt.Fprintf(os.Stderr, "Valid flags:\n")
-		flag.PrintDefaults()
-	}
-}
-
 //sendFragments((str)fileName,(str)fileType,(int)numOfDivision,(int)numOfAppend,(byte[][])content(content),(string[])digest,(int)fileSize);
 func goEncoder(raw []byte, numOfDivision int, numOfAppend int)(content [][]byte){
-//func goEncoder(rawJS js.Value, numOfDivisionJS js.Value, numOfAppendJS js.Value)(content [][]byte){
-	/*
-	var raw = new([]byte)
-	var numOfDivision = new(int)
-	var numOfAppend = new(int)
-	raw = rawJS.Int()
-	numOfDivision = numOfDivisionJS.Int()
-	numOfAppend = numOfAppendJS.Int()
-	*/
-	//fmt.Println(raw)
 	enc, err := reedsolomon.New(numOfDivision, numOfAppend)
 	checkErr(err)
 	content, err = enc.Split(raw)
 	checkErr(err)
 	err = enc.Encode(content)
 	checkErr(err)
-	//fmt.Println(content)
-	//fmt.Println("hi")
 	return content
 }
 
 func callEncoder(this js.Value, args []js.Value) interface{}{
 	buffer := make([]byte, args[0].Length())
-	//fmt.Println(args[0].Length)
-	//fmt.Println(args[0])
 	js.CopyBytesToGo(buffer, args[0])
 	content := goEncoder(buffer, args[1].Int(), args[2].Int())
-	test := make([][]byte, len(content))
-	for i:=0; i< len(content); i++{
-		test[i] = make ([]byte,len(content[0]))
-	}
-	testbytes := bytes.Join(test,[]byte(""))
-	fmt.Println(len(testbytes))
-	fmt.Println("test len = ",len(test),"test[0] len = ",len(test[0]),"\ncontent len = ",len(content),"content[0] len =", len(content[0]))
 	fmt.Println("content len = ",len(content)," content[0] len =", len(content[0]))
-	//fmt.Println("content = ",content)
-
 	jsBuffer := make([]js.Value, len(content))
 	jsInterface := make([]interface{},len(content))
 	for  i:=0; i<len(content); i++{
@@ -106,17 +71,86 @@ func callEncoder(this js.Value, args []js.Value) interface{}{
 		js.CopyBytesToJS(jsBuffer[i], content[i])
 		jsInterface[i] = js.ValueOf(jsBuffer[i])
 	}
-	//fmt.Println(jsBuffer)
 	return js.ValueOf(jsInterface)
-
 } 
 
-//func mydecoder(content [][]byte)()
+
+//decodeFile(fileName, fileType, numOfDivision, numOfAppend, content, digest, fileSize);
+func goDecoder(shards [][]byte, numOfDivision int, numOfAppend int)(content []byte){
+	enc, err := reedsolomon.New(numOfDivision, numOfAppend)
+	checkErr(err)
+	fmt.Println("shards = ",shards)
+	fmt.Println(numOfDivision, numOfAppend)
+	// Verify the shards
+	ok, err := enc.Verify(shards)
+	if ok {
+		fmt.Println("No reconstruction needed")
+	} else {
+		fmt.Println("Verification failed. Reconstructing data")
+		err = enc.Reconstruct(shards)
+		if err != nil {
+			fmt.Println("Reconstruct failed -", err)
+			os.Exit(1)
+		}
+		ok, err = enc.Verify(shards)
+		if !ok {
+			fmt.Println("Verification failed after reconstruction, data likely corrupted.")
+			os.Exit(1)
+		}
+		checkErr(err)
+	}
+	//fmt.Println(shards);
+	content = bytes.Join(shards,[]byte(""))
+	return content
+
+}
+
+func callDecoder(this js.Value, args []js.Value) interface{}{
+	//var decoded = erasure.recombine(content, fileSize, numOfDivision, numOfAppend);
+	fmt.Println(reflect.TypeOf(args[0].Index(0).Index(0)))
+	fmt.Println(args[0].Index(0).Length(), args[0].Index(0).Index(0))
+	buffer := make([][]byte, args[0].Length())
+	for i:=0; i<len(buffer); i++ {
+		buffer[i] = make([]byte, args[0].Index(0).Length())
+		js.CopyBytesToGo(buffer[i], args[0].Index(i))
+	}
+	fmt.Println("buffer = ",buffer)
+	content := goDecoder(buffer, args[1].Int(), args[2].Int())
+	fmt.Println(content)
+	return content
+	//js.CopyBytesToGo(buffer, args[0])
+	/*
+	bfrags := make([][]js.Value,args[0].Length())
+	bfrags = args[0].JSValue
+	buffer := make([][]byte, args[0].Length())
+	for i:=0; i<len(buffer); i++{
+		js.CopyBytesToGo(buffer[i], args[0][i])
+	}
+	content := goDecoder(buffer, args[2].Int(), args[3].Int())
+	fmt.Println("content len = ",len(content)," content[0] len =", len(content[0]))
+	jsBuffer :=  js.Global().Get("Uint8Array").New(len(content))
+	js.CopyBytesToJS(jsBuffer, content)
+	return js.ValueOf(jsBuffer)
+	*/
+	/*
+	var x js.Wrapper
+	x = args[0]
+	fmt.Println("x = ", args[0])
+	content ,err := interface{}(x.JSValue()).(js.Value)
+	fmt.Println(content,err, reflect.TypeOf(content), args[0].Length())
+	fmt.Println(content.Index(0))
+	buffer :=make([]byte, args[0].Length())
+	js.CopyBytesToGo(buffer, content)
+	fmt.Println(buffer)
+	return js.ValueOf(args[0])
+	*/
+} 
 
 func main() {
 	c := make(chan struct{}, 0)
 	js.Global().Set("callEncoder",js.FuncOf(callEncoder))
- 	<-c
+	js.Global().Set("callDecoder",js.FuncOf(callDecoder))
+	<-c
 }
 
 func checkErr(err error) {
