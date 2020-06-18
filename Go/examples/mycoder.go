@@ -1,38 +1,6 @@
-//+build ignore0689bgh897j6uy
-
 // Copyright 2015, Klaus Post, see LICENSE for details.
-//
-// Simple encoder example
-//
-// The encoder encodes a simgle file into a number of shards
-// To reverse the process see "simpledecoder.go"
-//
-// To build an executable use:
-//
-// go build simple-decoder.go
-//
-// Simple Encoder/Decoder Shortcomings:
-// * If the file size of the input isn't divisible by the number of data shards
-//   the output will contain extra zeroes
-//
-// * If the shard numbers isn't the same for the decoder as in the
-//   encoder, invalid output will be generated.
-//
-// * If values have changed in a shard, it cannot be reconstructed.
-//
-// * If two shards have been swapped, reconstruction will always fail.
-//   You need to supply the shards in the same order as they were given to you.
-//
-// The solution for this is to save a metadata file containing:
-//
-// * File size.
-// * The number of data/parity shards.
-// * HASH of each shard.
-// * Order of the shards.
-//
-// If you save these properties, you should abe able to detect file corruption
-// in a shard and be able to reconstruct your data if you have the needed number of shards left.
-
+// Copyright 2020 XD
+////+build ignore0689bgh897j6uy
 package main
 
 import (
@@ -42,7 +10,7 @@ import (
 	"os"
 	//"path/filepath"
 	"bytes"
-	"reflect"
+	//"reflect"
 
 	"syscall/js"
 	"github.com/klauspost/reedsolomon"
@@ -63,7 +31,7 @@ func callEncoder(this js.Value, args []js.Value) interface{}{
 	buffer := make([]byte, args[0].Length())
 	js.CopyBytesToGo(buffer, args[0])
 	content := goEncoder(buffer, args[1].Int(), args[2].Int())
-	fmt.Println("content len = ",len(content)," content[0] len =", len(content[0]))
+	//fmt.Println("content len = ",len(content)," content[0] len =", len(content[0]))
 	jsBuffer := make([]js.Value, len(content))
 	jsInterface := make([]interface{},len(content))
 	for  i:=0; i<len(content); i++{
@@ -72,6 +40,7 @@ func callEncoder(this js.Value, args []js.Value) interface{}{
 		jsInterface[i] = js.ValueOf(jsBuffer[i])
 	}
 	return js.ValueOf(jsInterface)
+	//return js.ValueOf([]interface{}(jsBuffer))
 } 
 
 
@@ -79,8 +48,8 @@ func callEncoder(this js.Value, args []js.Value) interface{}{
 func goDecoder(shards [][]byte, numOfDivision int, numOfAppend int)(content []byte){
 	enc, err := reedsolomon.New(numOfDivision, numOfAppend)
 	checkErr(err)
-	fmt.Println("shards = ",shards)
-	fmt.Println(numOfDivision, numOfAppend)
+	//fmt.Println("shards = ",shards)
+	//fmt.Println(numOfDivision, numOfAppend)
 	// Verify the shards
 	ok, err := enc.Verify(shards)
 	if ok {
@@ -107,17 +76,19 @@ func goDecoder(shards [][]byte, numOfDivision int, numOfAppend int)(content []by
 
 func callDecoder(this js.Value, args []js.Value) interface{}{
 	//var decoded = erasure.recombine(content, fileSize, numOfDivision, numOfAppend);
-	fmt.Println(reflect.TypeOf(args[0].Index(0).Index(0)))
-	fmt.Println(args[0].Index(0).Length(), args[0].Index(0).Index(0))
+	//fmt.Println(reflect.TypeOf(args[0].Index(0).Index(0)))
+	//fmt.Println(args[0].Index(0).Length(), args[0].Index(0).Index(0))
 	buffer := make([][]byte, args[0].Length())
 	for i:=0; i<len(buffer); i++ {
 		buffer[i] = make([]byte, args[0].Index(0).Length())
 		js.CopyBytesToGo(buffer[i], args[0].Index(i))
 	}
-	fmt.Println("buffer = ",buffer)
+	//fmt.Println("buffer = ",buffer)
 	content := goDecoder(buffer, args[1].Int(), args[2].Int())
-	fmt.Println(content)
-	return content
+	//fmt.Println(content)
+	jsBuffer :=  js.Global().Get("Uint8Array").New(len(content))
+	js.CopyBytesToJS(jsBuffer, content)
+	return js.ValueOf(jsBuffer)
 	//js.CopyBytesToGo(buffer, args[0])
 	/*
 	bfrags := make([][]js.Value,args[0].Length())

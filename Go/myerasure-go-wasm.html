@@ -92,7 +92,7 @@
                     //const t2 = Date.now();//Encode timing end
                     console.log("Go Erasure encode took " + (t2-t1) + " mS");
                     if (document.getElementById("encode") != null)
-                        document.getElementById("encode").innerHTML += "Go encode took " + (t2- - t1) + "mS to generate " + content.length + " fragments</br>";
+                        document.getElementById("encode").innerHTML += "Go encode took " + (t2- t1) + "mS to generate " + content.length + " fragments</br>";
                     //TODO
                     //var digest = new Array();
                     /*
@@ -143,13 +143,13 @@
             }
             */
             const t5 = Date.now();//Decode timing start
-            alert(content);
-            var test = callDecoder(content, numOfDivision, numOfAppend);
-            var decoded = erasure.recombine(content, fileSize, numOfDivision, numOfAppend); 
+            //alert(content);
+            var decoded = callDecoder(content, numOfDivision, numOfAppend);
+            //var decoded = erasure.recombine(content, fileSize, numOfDivision, numOfAppend); 
             if (decoded.length > fileSize)
-                decoded = decoded.subarray(0, original.length);
+                decoded = decoded.subarray(0, fileSize);
             const t6 = Date.now();//Decode timing end
-            alert(isArray(decoded));
+            //alert(isArray(decoded));
             // after decoded, download the file and show info(time, errors)
             createAndDownloadFile(fileName, fileType, decoded);
 
