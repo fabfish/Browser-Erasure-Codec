@@ -71,7 +71,6 @@ func goDecoder(shards [][]byte, numOfDivision int, numOfAppend int)(content []by
 	//fmt.Println(shards);
 	content = bytes.Join(shards,[]byte(""))
 	return content
-
 }
 
 func callDecoder(this js.Value, args []js.Value) interface{}{
