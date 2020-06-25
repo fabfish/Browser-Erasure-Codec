@@ -30,6 +30,7 @@ func callEncoder(this js.Value, args []js.Value) interface{}{
 	js.CopyBytesToGo(buffer, args[0])
 	content := goEncoder(buffer, args[1].Int(), args[2].Int())
 	// trans content into js value
+	/*
 	jsBuffer := make([]js.Value, len(content))
 	jsInterface := make([]interface{},len(content))
 	for  i:=0; i<len(content); i++{
@@ -38,6 +39,14 @@ func callEncoder(this js.Value, args []js.Value) interface{}{
 		jsInterface[i] = js.ValueOf(jsBuffer[i])
 	}
 	return js.ValueOf(jsInterface)
+	*/
+	//code above is usable, but try to use []interface{} directly is also okay. the arg (if array) for js.ValueOf() must be []interface{}
+	jsContent := make([]interface{},len(content))
+	for i:=0; i<len(content); i++{
+		jsContent[i] = js.Global().Get("Uint8Array").New(len(content[0]))
+		js.CopyBytesToJS(jsContent[i].(js.Value),content[i])
+	}
+	return js.ValueOf(jsContent)
 } 
 
 
@@ -62,6 +71,7 @@ func goDecoder(shards [][]byte, numOfDivision int, numOfAppend int)(content []by
 		}
 		checkErr(err)
 	}
+	//fmt.Println("reconstructing content...")
 	content = bytes.Join(shards,[]byte(""))
 	return content
 }
@@ -76,6 +86,7 @@ func callDecoder(this js.Value, args []js.Value) interface{}{
 	}
 	content := goDecoder(buffer, args[1].Int(), args[2].Int())
 	//fmt.Println(content)
+	//fmt.Println("returning content to JS...")
 	jsBuffer :=  js.Global().Get("Uint8Array").New(len(content))
 	js.CopyBytesToJS(jsBuffer, content)
 	return js.ValueOf(jsBuffer)
@@ -95,21 +106,7 @@ func callMd5(this js.Value, args []js.Value) interface{} {
 }
 
 func main() {
-	// 声明一个函数，用来导出到js端，供js端调用
-	calcMd5 := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		// 声明一个和文件大小一样的切片
-		buffer := make([]byte, args[0].Length())
-		// 将文件的bytes数据复制到切片中，这里传进来的是一个Uint8Array类型
-		js.CopyBytesToGo(buffer, args[0])
-		// 计算md5的值
-		res := md5.Sum(buffer)
-		// 调用js端的方法，将结构返回给js端
-		// js.Global().Get("target").Get("callback").Invoke(fmt.Sprintf("%d", res))
-		// return nil
-		return fmt.Sprintf("%x", res)
-	})
 	c := make(chan struct{}, 0)
-	js.Global().Get("target").Set("calcMd5", calcMd5)
 	js.Global().Set("callMd5",js.FuncOf(callMd5))
 	js.Global().Set("callEncoder",js.FuncOf(callEncoder))
 	js.Global().Set("callDecoder",js.FuncOf(callDecoder))

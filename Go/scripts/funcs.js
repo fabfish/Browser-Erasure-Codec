@@ -40,8 +40,19 @@ function str2ab(str) {
 
 function c() {
     var t = document.getElementById("txt");
-    t.value = "Œ“∫‹∫√£°";
+    t.value = ":D";
 }
+
+//to tell the dimension of an array
+function isArray(a) {
+    let str1 = '??'
+    let str2 = '??'
+    for (let i of a) {
+        if (Array.isArray(i))
+            return str1
+        }
+        return str2
+    }
 
 //0530 add random
 /* to gen random n array

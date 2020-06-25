@@ -1,6 +1,6 @@
 ﻿<!DOCTYPE html>
-<!--myerasure_version 8
-    pack functions to provide standard ports-->
+<!--myerasure_version 9
+    now support go wasm-->
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <meta charset="utf-8" />
@@ -9,6 +9,21 @@
         var numOfDivision = 40;
         var numOfAppend = 20;
         //var randomArray = new Array;
+
+        var target = {
+            // go端会调用该方法来传递计算的结果
+            /*
+            callback(md5) {
+                // 打印结果到控制台
+                console.log('文件的md5为：', md5);
+                console.log(typeof(md5));//string
+                var buffer = new Array();
+                buffer = md5;
+                alert(buffer);
+                //return md5;
+            }
+            */
+        }
 
         /* encodeFile(click): packed functions
          * including:
@@ -65,6 +80,7 @@
                     document.getElementById("decode").innerHTML = ""; 
                 raw = new Uint8Array(fileString);
 
+                // show file info
                 if (document.getElementById("info") != null)
                     document.getElementById("info").innerHTML +=
                         "<h3>file name</h3> " + fileName
@@ -81,29 +97,44 @@
                 var worker = new Worker(blobURL);
                 worker.onmessage = function (e) {
                     console.log(e.data);
+                    //var diE=new Uint8Array(e.data);
+                    //var diDigest= callMd5(diE);
+                    //console.log(diDigest);
                     /*fileEncoder*/
                     const t1 = Date.now();//Encode timing start
                     //TODO
-                    //content = erasure.split(e.data.input, numOfDivision, numOfAppend);
+                    content = erasure.split(e.data.input, numOfDivision, numOfAppend);
                     //const t2JS = Date.now();
-                    content = callEncoder(e.data.input,numOfDivision,numOfAppend);
+                    //content = callEncoder(e.data.input,numOfDivision,numOfAppend);
                     const t2 = Date.now();
                     //createAndDownloadFile(fileName,fileType,testit);
                     //const t2 = Date.now();//Encode timing end
                     console.log("Go Erasure encode took " + (t2-t1) + " mS");
                     if (document.getElementById("encode") != null)
                         document.getElementById("encode").innerHTML += "Go encode took " + (t2- t1) + "mS to generate " + content.length + " fragments</br>";
-                    //TODO
-                    //var digest = new Array();
-                    /*
+
+                    var digest = new Array();
+                    
                     const t3 = Date.now();//Hash timing start                    
                     for (var i = 0; i < content.length; i++) {
-                        digest[i] = objectHash.MD5(content[i]);
+                        digest[i] = callMd5(content[i]);
                     }
                     const t4 = Date.now();//Hash timing end
                     if (document.getElementById("encode") != null)
-                        document.getElementById("encode").innerHTML += "Hash took " + (t4 - t3) + "mS to generate " + content.length + " digests</br>";
-                    */
+                        document.getElementById("encode").innerHTML += "Go wasm hash took " + (t4 - t3) + "mS to generate " + content.length + " digests</br>";
+                    console.log(digest);
+
+                    
+                    var digest_o = new Array();
+                    const t3_o = Date.now();//Hash timing start                    
+                    for (var i = 0; i < content.length; i++) {
+                        digest_o[i] = objectHash.MD5(content[i]);
+                    }
+                    const t4_o = Date.now();//Hash timing end
+                    if (document.getElementById("encode") != null)
+                        document.getElementById("encode").innerHTML += "Hash took " + (t4_o - t3_o) + "mS to generate " + content.length + " digests</br>";
+                    console.log(digest_o);
+
                     /* Next we can use sendFragments() to send the results to the backend,
                      * hopefully content[][] remain as 2d array
                      * */
@@ -134,22 +165,22 @@
         function decodeFile(fileName, fileType, numOfDivision, numOfAppend, content, digest, fileSize) {
             //clean wrong parts
             var errors = 0;
-            /*
             for (var i = 0; i < content.length; i++) {
-                if (digest[i] != objectHash.MD5(content[i])) {
+                if (digest[i] != callMd5(content[i])) {
                     errors += 1;
                     content[i] = new Uint8Array(content[i].length);
                 }
             }
-            */
             const t5 = Date.now();//Decode timing start
-            //alert(content);
-            var decoded = callDecoder(content, numOfDivision, numOfAppend);
-            //var decoded = erasure.recombine(content, fileSize, numOfDivision, numOfAppend); 
+            //console.log("decoding start");
+            //var decoded = callDecoder(content, numOfDivision, numOfAppend);
+            var decoded = erasure.recombine(content, fileSize, numOfDivision, numOfAppend); 
+            //console.log("erasing bargin...");
             if (decoded.length > fileSize)
                 decoded = decoded.subarray(0, fileSize);
             const t6 = Date.now();//Decode timing end
-            //alert(isArray(decoded));
+            console.log("decoding use "+ (t6-t5) + " ms");
+            alert("decoding finished");
             // after decoded, download the file and show info(time, errors)
             createAndDownloadFile(fileName, fileType, decoded);
 
@@ -158,18 +189,6 @@
             console.log("Erasure decode took " + (t6 - t5) + " mS");
             return Promise.resolve(true);
         }
-
-    function isArray(a) {
-        let str1 = '二维'
-        let str2 = '一维'
-        for (let i of a) {
-            if (Array.isArray(i))
-                return str1
-            }
-            return str2
-        }
-        
-    
     </script>
 
 </head>
@@ -195,10 +214,10 @@
     <script src="scripts/object_hash.js" type="text/javascript"></script>
     <script src="scripts/erasure.js"></script>
     <script src="scripts/funcs.js"></script>
-    <script src="examples/wasm_exec.js"></script>
+    <script src="wasm/wasm_exec.js"></script>
     <script>
         const go = new Go();
-        WebAssembly.instantiateStreaming(fetch("examples/mycoder.wasm"), go.importObject)
+        WebAssembly.instantiateStreaming(fetch("wasm/mycoder.wasm"), go.importObject)
             .then((result) => go.run(result.instance));
     </script>
 </body>
