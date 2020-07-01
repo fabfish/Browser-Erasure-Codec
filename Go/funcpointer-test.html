@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <!--myerasure_version 10
     now support go wasm-->
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -9,7 +9,6 @@
         var numOfDivision = 16;
         var numOfAppend = 8;
 
-//from loliw
         function encodeCallBack(fileInfo){
             var uploadForm = new FormData();
             var deviceArray;
@@ -49,7 +48,7 @@
                 WebSocketUpload(deviceArray[i].ip, deviceArray[i].port, (fileId * 100 + i).toString(), fileInfo.content[i], fileInfo.digest[i]);
             }
         }
-        /*
+/*
         encodeCallBack({
             fileName: fileName,
             fileType: fileType,
@@ -59,7 +58,7 @@
             digest: digest,
             fileSize: fileSize
         })
-        */
+*/
 
         /* encodeFile(click): packed functions
          * including:
@@ -67,39 +66,26 @@
          *  upLoader()
          * */
         function encodeFile(evt) {
-            /* After file selected, get info(name, type, size) as global,
-             * and read filestream As ArrayBuffer
-             * use FileReader, seemingly usable for Chrome & Firefox
-             * turn to upLoader()
-             * handleFileSelect(this) -> upLoader 
-             * */
+
             var fileType = new Array();
             var fileName = new Array();
             var fileSize;
             var content = new Array();
             var digest = new Array();
-            function handleFileSelect(evt) {
+
+            function handleFileSelect(evt, pointer) {
                 var files = evt.target.files; // FileList object
                 if (files[0]) {
                     fileType = files[0].type;
                     fileName = files[0].name;
                     fileSize = files[0].size;
+                    //pointer(fileType);
                     var reader = new FileReader();
                     reader.readAsArrayBuffer(files[0]);
                     reader.onload = upLoader;
                 }
             }
-            /* 
-             * user choose a file, and trigger handleFileSelect -> upLoader(this)
-             * upLoader get the file in *.result as raw, then create a worker to do encoding
-             * evt : from                  ↙ not this evt
-             *  function handleFileSelect(evt) {
-                    ...
-                    var reader = new FileReader();
-                    ...                 ↙ Maybe this evt(I'm not sure)
-                    reader.onload = upLoader;
-                }
-             * */
+    
             function upLoader(evt) {
                 if (document.getElementById("tips") != null)
                     document.getElementById("tips").innerHTML = "<h3>Please wait during erasure code profiling...</h3></br>";
@@ -138,11 +124,17 @@
                     if (document.getElementById("encode") != null)
                         document.getElementById("encode").innerHTML += "Go encode took " + (t2- t1) + "mS to generate " + content.length + " fragments</br>";
                     /*hash*/
-                    var digest = new Array();                    
-                    const t3 = Date.now();//Hash timing start                    
+                    var digest = new Array();      
+                    var digest_o = new Array();              
+                    const t3 = Date.now();//Hash timing start     
+                    var pointer=new Function();
+                    pointer= callMd5;           
                     for (var i = 0; i < content.length; i++) {
                         digest[i] = callMd5(content[i]);
+                        digest_o[i] = pointer(content[i]);
+                        console.log(digest[i],"and",digest_o[i]);
                     }
+                    alert();
                     const t4 = Date.now();//Hash timing end
                     if (document.getElementById("encode") != null)
                         document.getElementById("encode").innerHTML += "Go wasm hash took " + (t4 - t3) + "mS to generate " + content.length + " digests</br>";
@@ -152,7 +144,11 @@
                 };
                 worker.postMessage({ input: raw });
             }
-            handleFileSelect(evt);
+            function ao(sth){
+                alert(sth);
+            }
+            handleFileSelect(evt, callMd5);
+            
             return {
                 fileName: fileName,
                 fileType: fileType,
