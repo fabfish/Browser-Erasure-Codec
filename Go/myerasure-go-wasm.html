@@ -67,12 +67,6 @@
          *  upLoader()
          * */
         function encodeFile(evt) {
-            /* After file selected, get info(name, type, size) as global,
-             * and read filestream As ArrayBuffer
-             * use FileReader, seemingly usable for Chrome & Firefox
-             * turn to upLoader()
-             * handleFileSelect(this) -> upLoader 
-             * */
             var fileType = new Array();
             var fileName = new Array();
             var fileSize;
@@ -89,17 +83,7 @@
                     reader.onload = upLoader;
                 }
             }
-            /* 
-             * user choose a file, and trigger handleFileSelect -> upLoader(this)
-             * upLoader get the file in *.result as raw, then create a worker to do encoding
-             * evt : from                  ↙ not this evt
-             *  function handleFileSelect(evt) {
-                    ...
-                    var reader = new FileReader();
-                    ...                 ↙ Maybe this evt(I'm not sure)
-                    reader.onload = upLoader;
-                }
-             * */
+
             function upLoader(evt) {
                 if (document.getElementById("tips") != null)
                     document.getElementById("tips").innerHTML = "<h3>Please wait during erasure code profiling...</h3></br>";
@@ -113,7 +97,6 @@
                     document.getElementById("decode").innerHTML = ""; 
                 raw = new Uint8Array(fileString);
 
-                // show file info
                 if (document.getElementById("info") != null)
                     document.getElementById("info").innerHTML +=
                         "<h3>file name</h3> " + fileName
@@ -164,12 +147,6 @@
             }
         }
 
-        /* void decodeFile((str)fileName,(str)fileType,
-         *                  (int)numOfDivision,(int)numOfAppend,
-         *                  (byte[][])content,(string[])digest,
-         *                  (int)fileSize);
-         * decode the content[][] and recover the original file
-         * */
         function decodeFile(fileName, fileType, numOfDivision, numOfAppend, content, digest, fileSize) {
             //clean wrong parts
             var errors = 0;
