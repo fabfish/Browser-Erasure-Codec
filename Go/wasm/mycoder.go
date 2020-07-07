@@ -14,7 +14,7 @@ import (
 
 //sendFragments((str)fileName,(str)fileType,(int)numOfDivision,(int)numOfAppend,(byte[][])content(content),(string[])digest,(int)fileSize);
 func goEncoder(raw []byte, numOfDivision int, numOfAppend int)(content [][]byte){
-	enc, err := reedsolomon.New(numOfDivision, numOfAppend)
+	enc, err := reedsolomon.New(numOfDivision, numOfAppend, reedsolomon.WithCauchyMatrix())
 	checkErr(err)
 	content, err = enc.Split(raw)
 	checkErr(err)
@@ -40,7 +40,7 @@ func callEncoder(this js.Value, args []js.Value) interface{}{
 
 //decodeFile(fileName, fileType, numOfDivision, numOfAppend, content, digest, fileSize);
 func goDecoder(shards [][]byte, numOfDivision int, numOfAppend int)(content []byte){
-	enc, err := reedsolomon.New(numOfDivision, numOfAppend)
+	enc, err := reedsolomon.New(numOfDivision, numOfAppend, reedsolomon.WithCauchyMatrix())
 	checkErr(err)
 	ok, err := enc.Verify(shards)
 	if ok {
