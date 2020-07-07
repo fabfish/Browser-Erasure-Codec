@@ -17,3 +17,5 @@ z.*
 
 others/
 backup/
+
+*.file

@@ -32,3 +32,8 @@ goexec 'http.ListenAndServe(`:8080`, http.FileServer(http.Dir(`.`)))'
 ```
 
 这一段会找到 wasm 文件，里面写好的函数在 js 里用。其他的基本没啥变化。
+
+## 备用
+
+GOOS=js GOARCH=wasm go build -o mycoder.wasm mycoder.go
+goexec 'http.ListenAndServe(`:8080`, http.FileServer(http.Dir(`.`)))'
