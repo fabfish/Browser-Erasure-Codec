@@ -62,12 +62,12 @@ func goDecoder(shards [][]byte, numOfDivision int, numOfAppend int)(content []by
 		err = enc.Reconstruct(shards)
 		if err != nil {
 			fmt.Println("Reconstruct failed -", err)
-			os.Exit(1)
+			//os.Exit(1)
 		}
 		ok, err = enc.Verify(shards)
 		if !ok {
 			fmt.Println("Verification failed after reconstruction, data likely corrupted.")
-			os.Exit(1)
+			//os.Exit(1)
 		}
 		checkErr(err)
 	}
@@ -79,10 +79,26 @@ func goDecoder(shards [][]byte, numOfDivision int, numOfAppend int)(content []by
 func callDecoder(this js.Value, args []js.Value) interface{}{
 	//var decoded = erasure.recombine(content, fileSize, numOfDivision, numOfAppend);
 	// use buffer and the .Index(i int) func to index args[0]
+	//fmt.Println("EnterCallDecoder")
 	buffer := make([][]byte, args[0].Length())
+	//fmt.Println("buffermade")
 	for i:=0; i<len(buffer); i++ {
-		buffer[i] = make([]byte, args[0].Index(0).Length())
-		js.CopyBytesToGo(buffer[i], args[0].Index(i))
+		flag:=args[0].Index(i)
+		/*
+		fmt.Println("flag")
+		fmt.Println(flag)
+		fmt.Println("js")
+		fmt.Println(js.ValueOf(flag))
+		fmt.Println(!flag.Equal(js.Null()))
+		buffer[i] = make([]byte, args[0].Index(i).Length())
+		*/
+		if !flag.Equal(js.Null()) {
+			buffer[i] = make([]byte, args[0].Index(i).Length())
+			js.CopyBytesToGo(buffer[i], args[0].Index(i))
+		}else {
+			buffer[i]=nil;
+		}
+		
 	}
 	content := goDecoder(buffer, args[1].Int(), args[2].Int())
 	//fmt.Println(content)
@@ -116,6 +132,6 @@ func main() {
 func checkErr(err error) {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %s", err.Error())
-		os.Exit(2)
+		//os.Exit(2)
 	}
 }
