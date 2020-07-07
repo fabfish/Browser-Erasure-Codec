@@ -1,5 +1,5 @@
 // Copyright 2015, Klaus Post, see LICENSE for details.
-// Copyright 2020 XD
+// Copyright 2020 OSH-xdontpanic
 package main
 
 import (
@@ -8,7 +8,6 @@ import (
 	"bytes"
 	//"reflect"
 	"crypto/md5"
-
 	"syscall/js"
 	"github.com/klauspost/reedsolomon"
 )
@@ -30,17 +29,7 @@ func callEncoder(this js.Value, args []js.Value) interface{}{
 	js.CopyBytesToGo(buffer, args[0])
 	content := goEncoder(buffer, args[1].Int(), args[2].Int())
 	// trans content into js value
-	/*
-	jsBuffer := make([]js.Value, len(content))
-	jsInterface := make([]interface{},len(content))
-	for  i:=0; i<len(content); i++{
-		jsBuffer[i] =  js.Global().Get("Uint8Array").New(len(content[0]))
-		js.CopyBytesToJS(jsBuffer[i], content[i])
-		jsInterface[i] = js.ValueOf(jsBuffer[i])
-	}
-	return js.ValueOf(jsInterface)
-	*/
-	//code above is usable, but try to use []interface{} directly is also okay. the arg (if array) for js.ValueOf() must be []interface{}
+	// use []interface{} directly. the arg (if array) for js.ValueOf() must be []interface{}
 	jsContent := make([]interface{},len(content))
 	for i:=0; i<len(content); i++{
 		jsContent[i] = js.Global().Get("Uint8Array").New(len(content[0]))
@@ -48,7 +37,6 @@ func callEncoder(this js.Value, args []js.Value) interface{}{
 	}
 	return js.ValueOf(jsContent)
 } 
-
 
 //decodeFile(fileName, fileType, numOfDivision, numOfAppend, content, digest, fileSize);
 func goDecoder(shards [][]byte, numOfDivision int, numOfAppend int)(content []byte){
@@ -71,7 +59,6 @@ func goDecoder(shards [][]byte, numOfDivision int, numOfAppend int)(content []by
 		}
 		checkErr(err)
 	}
-	//fmt.Println("reconstructing content...")
 	content = bytes.Join(shards,[]byte(""))
 	return content
 }
@@ -79,30 +66,17 @@ func goDecoder(shards [][]byte, numOfDivision int, numOfAppend int)(content []by
 func callDecoder(this js.Value, args []js.Value) interface{}{
 	//var decoded = erasure.recombine(content, fileSize, numOfDivision, numOfAppend);
 	// use buffer and the .Index(i int) func to index args[0]
-	//fmt.Println("EnterCallDecoder")
 	buffer := make([][]byte, args[0].Length())
-	//fmt.Println("buffermade")
 	for i:=0; i<len(buffer); i++ {
-		flag:=args[0].Index(i)
-		/*
-		fmt.Println("flag")
-		fmt.Println(flag)
-		fmt.Println("js")
-		fmt.Println(js.ValueOf(flag))
-		fmt.Println(!flag.Equal(js.Null()))
-		buffer[i] = make([]byte, args[0].Index(i).Length())
-		*/
-		if !flag.Equal(js.Null()) {
+		// if args[0][i]==null, set buffer[i] as nil.
+		if !args[0].Index(i).Equal(js.Null()) {
 			buffer[i] = make([]byte, args[0].Index(i).Length())
 			js.CopyBytesToGo(buffer[i], args[0].Index(i))
 		}else {
 			buffer[i]=nil;
 		}
-		
 	}
 	content := goDecoder(buffer, args[1].Int(), args[2].Int())
-	//fmt.Println(content)
-	//fmt.Println("returning content to JS...")
 	jsBuffer :=  js.Global().Get("Uint8Array").New(len(content))
 	js.CopyBytesToJS(jsBuffer, content)
 	return js.ValueOf(jsBuffer)
@@ -115,9 +89,7 @@ func callMd5(this js.Value, args []js.Value) interface{} {
 	js.CopyBytesToGo(buffer, args[0])
 	// 计算md5的值
 	res := md5.Sum(buffer)
-	// 调用js端的方法，将结构返回给js端
-	// js.Global().Get("target").Get("callback").Invoke(fmt.Sprintf("%d", res))
-	// return nil
+	// 调用js端的方法，将字符串返回给js端
 	return fmt.Sprintf("%x", res)
 }
 

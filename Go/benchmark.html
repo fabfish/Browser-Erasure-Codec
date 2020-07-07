@@ -179,7 +179,7 @@
                 document.getElementById("encode").innerHTML += errors + "errors  " + (t6 - t5) + "mS</br>";
             console.log("Erasure decode took " + (t6 - t5) + " mS");
             // after decoded, download the file and show info(time, errors)
-            //createAndDownloadFile(fileName, fileType, decoded);
+            createAndDownloadFile(fileName, fileType, decoded);
             return Promise.resolve(true);
         }
     </script>
