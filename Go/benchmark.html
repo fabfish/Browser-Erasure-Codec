@@ -72,6 +72,7 @@
             var fileSize;
             var content = new Array();
             var digest = new Array();
+
             function handleFileSelect(evt) {
                 var files = evt.target.files; // FileList object
                 if (files[0]) {
@@ -85,12 +86,15 @@
             }
 
             function upLoader(evt) {
+                /*
                 if (document.getElementById("tips") != null)
                     document.getElementById("tips").innerHTML = "<h3>Please wait during erasure code profiling...</h3></br>";
-                /*receive file*/
-                var fileString = evt.target.result;
+                //receive file
+
                 if (document.getElementById("info") != null)
                     document.getElementById("info").innerHTML = "loaded as Uint8Array...</br>";
+                */
+                var fileString = evt.target.result;
                 if (document.getElementById("encode") != null)
                     document.getElementById("encode").innerHTML = "";
                 if (document.getElementById("decode") != null)
@@ -136,7 +140,8 @@
                     //test
                     decodeFile(fileName, fileType, numOfDivision, numOfAppend, content, digest, fileSize);
                 };
-                for (var i=1;i<=10;i++) worker.postMessage({ input: raw });
+                //for (var i=1;i<=numOfAppend+2;i++) worker.postMessage({ input: raw });
+                for (var i=1;i<=4;i++) worker.postMessage({ input: raw });
             }
             handleFileSelect(evt);
             return {
@@ -151,13 +156,29 @@
         }
         var nn=0;
         var flag=0;
+        var flag2=0;
         function decodeFile(fileName, fileType, numOfDivision, numOfAppend, content, digest, fileSize) {
             //clean wrong parts
+            /*
+            if (nn==numOfAppend){
+                nn=0;
+                flag=0;
+                flag2=0;
+            }
+            */
             var errors = 0;
+            /*
             if (flag) for (var i=0;i<=nn;i++)
             content[i]=new Uint8Array(content[i].length);
-            if (flag)nn++;
-            flag=1;
+            */
+           if (flag==2) content[0]=new Uint8Array(content[0].length);
+           if (flag==3) for (var i=0;i<=numOfAppend-1;i++)
+            content[i]=new Uint8Array(content[i].length);
+            flag++;
+            if (flag==4) flag=0; 
+            //if (flag)nn++;
+            //if (flag2) flag=1;
+            //else flag2=1;
             
             for (var i = 0; i < content.length; i++) {
                 if (digest[i] != callMd5(content[i])) {
@@ -179,7 +200,7 @@
                 document.getElementById("encode").innerHTML += errors + "errors  " + (t6 - t5) + "mS</br>";
             console.log("Erasure decode took " + (t6 - t5) + " mS");
             // after decoded, download the file and show info(time, errors)
-            createAndDownloadFile(fileName, fileType, decoded);
+            //createAndDownloadFile(fileName, fileType, decoded);
             return Promise.resolve(true);
         }
     </script>
