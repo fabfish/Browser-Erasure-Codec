@@ -2,15 +2,71 @@
 <!--myerasure_version 10
     now support go wasm-->
 <html xmlns="http://www.w3.org/1999/xhtml">
-
 <head>
     <meta charset="utf-8" />
     <title></title>
     <script>
         var numOfDivision = 16;
         var numOfAppend = 8;
-        //var sizeOfBlock = 524288;
-        var sizeOfBlock = 524288;
+        var sizeOfBlock = 512;
+
+//from loliw
+        function encodeCallBack(fileInfo){
+            var uploadForm = new FormData();
+            var deviceArray;
+            var fileId;
+            var path = "/";
+            if(curr_path_array.length>1)
+                path="";
+            for(var i=1;i<curr_path_array.length;i++)
+                path = path + curr_path_array[i] + "/" ;
+            uploadForm.append("path", path);
+            uploadForm.append("fileName", fileInfo.fileName);
+            uploadForm.append("fileType", fileInfo.fileType);
+            uploadForm.append("nod", fileInfo.numOfDivision);
+            uploadForm.append("noa", fileInfo.numOfAppend);
+            uploadForm.append("fileSize", fileInfo.fileSize);
+            uploadForm.append("whose", $.cookie("username"));
+            $.ajax({
+                url: "FileUploader!uploadRegister.action",
+                type: "POST",
+                data: uploadForm,
+                dataType: "text",
+                processData: false,
+                contentType: false,
+                async: false,								//此处采用同步查询进度
+                success: function (databack) {
+                    var retFileInfo = $.parseJSON(databack);
+                    let result = retFileInfo.result;
+                    deviceArray = retFileInfo.devices.forms;
+                    fileId=retFileInfo.fileId;
+                    console.log(result);
+                    //alert(result);
+                }
+            });
+
+            //alert("Before upload");
+            for (var i = 0; i < deviceArray.length; i++) {
+                WebSocketUpload(deviceArray[i].ip, deviceArray[i].port, (fileId * 100 + i).toString(), fileInfo.content[i], fileInfo.digest[i]);
+            }
+        }
+        /*
+        encodeCallBack({
+            fileName: fileName,
+            fileType: fileType,
+            numOfDivision: numOfDivision,
+            numOfAppend: numOfAppend,
+            content: content,
+            digest: digest,
+            fileSize: fileSize
+        })
+        */
+
+        /* encodeFile(click): packed functions
+         * including:
+         *  handleFileSelect()
+         *  upLoader()
+         * */
         function encodeFile(evt) {
             var fileType = new Array();
             var fileName = new Array();
@@ -37,8 +93,10 @@
                 var fileString = evt.target.result;
                 if (document.getElementById("info") != null)
                     document.getElementById("info").innerHTML = "loaded as Uint8Array...</br>";
+                if (document.getElementById("encode") != null)
+                    document.getElementById("encode").innerHTML = "";
                 if (document.getElementById("decode") != null)
-                    document.getElementById("decode").innerHTML = "";
+                    document.getElementById("decode").innerHTML = ""; 
                 raw = new Uint8Array(fileString);
 
                 if (document.getElementById("info") != null)
@@ -48,8 +106,7 @@
                         + "</br><h3>file size</h3> " + fileSize / 1024 + " KB"
                         + "</br>Division " + numOfDivision
                         + "Append " + numOfAppend
-                        + "</br>block size " + sizeOfBlock
-                        + "</br>Block " + Math.ceil(fileSize/sizeOfBlock)
+                        + "</br>block size" + sizeOfBlock
                         + "</br></br>";
 
                 // create a worker to do the erasure coding
@@ -57,45 +114,31 @@
                 // Obtain a blob URL reference to our worker 'file'.
                 var blobURL = window.URL.createObjectURL(blob);
                 var worker = new Worker(blobURL);
-                var numf=0;
-                var time=0;
                 worker.onmessage = function (e) {
-                    //console.log(e.data.input);
+                    //console.log(e.data);
+                    console.log("RECEIVED");
                     
                     /*fileEncoder*/
                     const t1 = Date.now();//Encode timing start
-                    content = callEncoder(e.data.input, numOfDivision, numOfAppend);
+                    content = callEncoder(e.data.input,numOfDivision,numOfAppend);
                     const t2 = Date.now();//Encode timing end
-                    time+=t2-t1;
-                    //console.log("Go Erasure encode took " + (t2 - t1) + " mS");
-                    //if (document.getElementById("encode") != null)
-                    //    document.getElementById("encode").innerHTML += "Go encode took " + (t2 - t1) + "mS to generate " + content.length + " fragments</br>";
+                    console.log("Go Erasure encode took " + (t2-t1) + " mS");
+                    if (document.getElementById("encode") != null)
+                        document.getElementById("encode").innerHTML += "Go encode took " + (t2- t1) + "mS to generate " + content.length + " fragments</br>";
                     /*hash*/
-                    var digest = new Array();
+                    var digest = new Array();                    
                     const t3 = Date.now();//Hash timing start                    
                     for (var i = 0; i < content.length; i++) {
                         digest[i] = callMd5(content[i]);
                     }
                     const t4 = Date.now();//Hash timing end
-
-                    if (document.getElementById("test") != null)
-                    document.getElementById("test").innerHTML = numf++ + "</br>" + time;
-                    // if (document.getElementById("encode") != null)
-                    //    document.getElementById("encode").innerHTML += "Go wasm hash took " + (t4 - t3) + "mS to generate " + content.length + " digests</br>";
+                    if (document.getElementById("encode") != null)
+                        document.getElementById("encode").innerHTML += "Go wasm hash took " + (t4 - t3) + "mS to generate " + content.length + " digests</br>";
                     //console.log(digest);
                     //test
-                    //decodeFile(fileName, fileType, numOfDivision, numOfAppend, content, digest, fileSize);
-                    close();
+                    decodeFile(fileName, fileType, numOfDivision, numOfAppend, content, digest, fileSize);
                 };
-
-                const t10 = Date.now();//Encode timing start
-                for (var i = 0; i <= fileSize; i += sizeOfBlock) {
-                    //console.log(i);
-                    worker.postMessage({input : raw.slice(i,i+sizeOfBlock)})
-                }
-                const t11 = Date.now();//Encode timing end
-                console.log("Go Erasure encode took " + (t11 - t10) + " mS");
-                //worker.postMessage({ input: raw });
+                worker.postMessage({ input: raw });
             }
             handleFileSelect(evt);
             return {
@@ -133,7 +176,6 @@
     </script>
 
 </head>
-
 <body>
 
     <input type="file" id="file" name="files[]" multiple />
@@ -143,7 +185,6 @@
     <input type="button" value="修改" onclick="handleNumberSet()" />
     <div id="tips"></div>
     <div id="info"></div>
-    <div id="test"></div>
     <div id="encode"></div>
     <div id="random"></div>
     <div id="decode"></div>
@@ -165,5 +206,4 @@
             .then((result) => go.run(result.instance));
     </script>
 </body>
-
 </html>

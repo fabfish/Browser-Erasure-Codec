@@ -1,0 +1,155 @@
+﻿<!DOCTYPE html>
+<!--myerasure_version 10
+    now support go wasm-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+    <script>
+        var numOfDivision = 16;
+        var numOfAppend = 8;
+        var sizeOfBlock = 512;
+
+        // 0402: temporarily removed websocket provided by loliw
+        // for that function, refer to GO/html-backup/*.html
+
+        function handleFileSelect(event) {
+            var files = event.target.files; // FileList object
+            var fileType = new Array();
+            var fileName = new Array();
+            var fileSize;
+            var numOfFiles;
+            for (var i=0;;i++) {
+                if (files[i]) 
+                    numOfFiles = i+1;
+                else break;
+            }
+            for (var i=0;i<=numOfFiles-1;i++){
+                fileType = files[i].type;
+                fileName = files[i].name;
+                fileSize = files[i].size;
+                var reader = new FileReader();
+                reader.readAsArrayBuffer(files[i]);
+                reader.onload = upLoader;
+            } 
+        }
+
+        function upLoader(evt) {
+            if (document.getElementById("tips") != null)
+                document.getElementById("tips").innerHTML = 
+                    "<h3>Please wait during erasure code profiling...</h3></br>";           
+            // receive file
+            var fileString = evt.target.result;
+            raw = new Uint8Array(fileString);
+            if (document.getElementById("info") != null)
+                document.getElementById("info").innerHTML = 
+                    "loaded as Uint8Array...</br>";
+            if (document.getElementById("decode") != null)
+                document.getElementById("decode").innerHTML = "";
+            if (document.getElementById("info") != null)
+                document.getElementById("info").innerHTML +=
+                    "<h3>file name</h3> " + fileName
+                    + "</br><h3>file type</h3> " + fileType
+                    + "</br><h3>file size</h3> " + fileSize / 1024 + " KB"
+                    + "</br>Division " + numOfDivision
+                    + "Append " + numOfAppend
+                    + "</br>num of blocks " + Math.ceil(filesize/sizeOfBlock)
+                    + "</br>block size " + sizeOfBlock
+                    + "</br></br>";
+
+            // create a worker to do the erasure coding
+            var blob = new Blob(["onmessage = function(e) { postMessage(e.data); }"]);
+            // Obtain a blob URL reference to our worker 'file'.
+            var blobURL = window.URL.createObjectURL(blob);
+            var worker = new Worker(blobURL);
+            worker.onmessage = function (e) {
+                console.log(e.data.input);
+                // fileEncoder
+                const t1 = Date.now();
+                content = callEncoder(e.data.input, numOfDivision, numOfAppend);
+                const t2 = Date.now();
+                console.log("Go Erasure encode took " + (t2 - t1) + " mS");
+                if (document.getElementById("encode") != null)
+                    document.getElementById("encode").innerHTML += 
+                        "Go encode took " 
+                        + (t2 - t1) + "mS to generate " 
+                        + content.length + " fragments</br>";
+                // hash
+                var digest = new Array();
+                const t3 = Date.now();                  
+                for (var i = 0; i < content.length; i++) {
+                    digest[i] = callMd5(content[i]);
+                }
+                const t4 = Date.now();
+                if (document.getElementById("encode") != null)
+                    document.getElementById("encode").innerHTML += 
+                        "Go wasm hash took " 
+                        + (t4 - t3) + "mS to generate " 
+                        + content.length + " digests</br>";
+                //test
+                decodeFile(fileName, fileType, numOfDivision, numOfAppend, content, digest, fileSize);
+                close();
+            };
+            for (var i = 0; i <= fileSize; i += sizeOfBlock) {
+                worker.postMessage({input : raw.slice(i,i+sizeOfBlock)})
+            }
+            //worker.postMessage({ input: raw });
+        }
+
+        function decodeFile(fileName, fileType, numOfDivision, numOfAppend, content, digest, fileSize) {
+            //clean wrong parts
+            var errors = 0;
+            for (var i = 0; i < content.length; i++) {
+                if (digest[i] != callMd5(content[i])) {
+                    errors += 1;
+                    content[i] = new Uint8Array(content[i].length);
+                }
+            }
+            const t5 = Date.now();//Decode timing start
+            var decoded = callDecoder(content, numOfDivision, numOfAppend);
+            if (decoded.length > fileSize)
+                decoded = decoded.subarray(0, fileSize);
+            const t6 = Date.now();//Decode timing end
+            if (document.getElementById("decode") != null)
+                document.getElementById("decode").innerHTML += "Decode with " + errors + " errors suceeded in " + (t6 - t5) + "mS</br>";
+            console.log("Erasure decode took " + (t6 - t5) + " mS");
+            // after decoded, download the file and show info(time, errors)
+            createAndDownloadFile(fileName, fileType, decoded);
+            return Promise.resolve(true);
+        }
+
+    </script>
+
+</head>
+
+<body>
+
+    <input type="file" id="file" name="files[]" multiple />
+    <input type="text" id="Division" value=16>
+    <input type="text" id="Append" value=8>
+    <input type="text" id="sizeOfBlock" value=512>
+    <input type="button" value="修改" onclick="handleNumberSet()" />
+    <div id="tips"></div>
+    <div id="info"></div>
+    <div id="encode"></div>
+    <div id="random"></div>
+    <div id="decode"></div>
+    <div id="error"></div>
+    <script type="text/javascript">
+        var btn = document.getElementById('file');
+        btn.addEventListener('change', handleFileSelect, false);
+    </script>
+    <script type="text/javascript">
+
+    </script>
+    <script src="scripts/funcs.js"></script>
+    <script src="wasm/wasm_exec.js"></script>
+    <script>
+        const go = new Go();
+        WebAssembly.instantiateStreaming(fetch("wasm/mycoder.wasm"), go.importObject)
+            .then((result) => go.run(result.instance));
+    </script>
+</body>
+
+</html>
