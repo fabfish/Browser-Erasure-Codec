@@ -9,8 +9,8 @@
     <script>
         var numOfDivision = 16;
         var numOfAppend = 8;
-        //var sizeOfBlock = 524288;
         var sizeOfBlock = 524288;
+
         function encodeFile(evt) {
             var fileType = new Array();
             var fileName = new Array();
@@ -31,6 +31,7 @@
             }
 
             function upLoader(evt) {
+
                 if (document.getElementById("tips") != null)
                     document.getElementById("tips").innerHTML = "<h3>Please wait during erasure code profiling...</h3></br>";
                 /*receive file*/
@@ -82,9 +83,9 @@
                     document.getElementById("test").innerHTML = numf++ + "</br>" + time;
                     // if (document.getElementById("encode") != null)
                     //    document.getElementById("encode").innerHTML += "Go wasm hash took " + (t4 - t3) + "mS to generate " + content.length + " digests</br>";
-                    //console.log(digest);
-                    //test
-                    //decodeFile(fileName, fileType, numOfDivision, numOfAppend, content, digest, fileSize);
+                    // console.log(digest);
+                    // test
+                    // decodeFile(fileName, fileType, numOfDivision, numOfAppend, content, digest, fileSize);
                     close();
                 };
 
@@ -97,7 +98,9 @@
                 console.log("Go Erasure encode took " + (t11 - t10) + " mS");
                 //worker.postMessage({ input: raw });
             }
+
             handleFileSelect(evt);
+
             return {
                 fileName: fileName,
                 fileType: fileType,

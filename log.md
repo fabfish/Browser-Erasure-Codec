@@ -1,4 +1,5 @@
 0402
+
 又回来工作力
 现在的目标是对文件进行分片，按照指令的512KB左右分成许多小块
 现状是文件会被放进一个worker里，直接传给wasm
@@ -16,6 +17,7 @@ https://stackoverflow.com/questions/26224597/how-to-parse-uint8array-into-object
 现在学习worker怎么用 
 
 0403 
+
 昨天完成的工作内容是把文件分片进行解码，性能虽然比起之前整块处理看起来略有下降，但是应当解决了内存占用巨大，浏览器崩溃的问题。接下来要处理的有这些事情：
 
 1.怎么处理接收文件？loli提供的函数可以和websocket交互（websocket是什么作用来着）[在这儿](https://developer.mozilla.org/zh-CN/docs/Web/API/WebSocket) 然后通过调用这个函数来取得文件分片。那么现在要做的事情就是用js里面有的等待文件实时传输的函数来接收这个函数返回的文件碎片，然后用worker处理解码文件，并将解码完成的文件拼接起来。
